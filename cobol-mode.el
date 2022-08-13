@@ -2862,15 +2862,17 @@ lines."
 (defun cobol--get-current-division ()
   "Return the division containing point as a symbol."
   (cobol--search-back
-   #'(lambda ()
-       (cond ((looking-at cobol--division-re)
-              (string-match cobol--division-re (thing-at-point 'line))
-              (let ((division (downcase (match-string 1 (thing-at-point 'line)))))
-                (cons t (intern division))))
+   (lambda ()
+     (cond ((looking-at-p cobol--division-re)
+            (let* ((line (thing-at-point 'line))
+                   (division (downcase (progn
+                                         (string-match cobol--division-re line)
+                                         (match-string 1 line)))))
+              (cons t (intern division))))
 
-             ((or (looking-at cobol--end-marker-re)
-                  (bobp))
-              (cons t 'identification))))))
+           ((or (looking-at cobol--end-marker-re)
+                (bobp))
+            (cons t 'identification))))))
 
 (defun cobol--no-instances-of-after-in-division (instance-re after-re division)
   "Actual implementation of `cobol--no-instances-of'."
