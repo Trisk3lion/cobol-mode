@@ -2148,7 +2148,7 @@ Focus.")
 syntax.")
 
 (defconst cobol--procedure-re
-  (cobol--with-opt-whitespace-line "\\(\\w+\\)\\(\\s-+SECTION\\)?\\.")
+  "^.\\{6\\}[^*/]\\(\\w+\\)\\(\\s-+SECTION\\)?\\."
   "Regexp matching the declaration of a procedure.
 Note that this matches DECLARATIVES.")
 
@@ -2654,7 +2654,7 @@ and ignored areas) between points BEG and END."
 
 (cl-defun cobol--indent (indent &optional (times 1))
   "Increment INDENT."
-  (+ indent (* times cobol-tab-width)))
+  (+ indent (round (* times cobol-tab-width))))
 
 (defun cobol--current-indentation ()
   "Return the indentation of the current line or -1 if the line is within the
@@ -2854,7 +2854,11 @@ lines."
 
           ((string-equal phrase "ELSE")
            (cobol--indent-of-open-statement '("IF")))
-
+          ;; FIXME: Gör variabel!
+          ((string-equal phrase "WHEN")
+           (cobol--indent (cobol--indent-of-open-statement
+                           (cobol--statements-with-phrase str))
+                          0.5))
           (t
            (cobol--indent (cobol--indent-of-open-statement
                            (cobol--statements-with-phrase str)))))))
@@ -2869,7 +2873,6 @@ lines."
                                          (string-match cobol--division-re line)
                                          (match-string 1 line)))))
               (cons t (intern division))))
-
            ((or (looking-at cobol--end-marker-re)
                 (bobp))
             (cons t 'identification))))))
@@ -2942,17 +2945,21 @@ the clauses of a non-procedural PERFORM."
           ((eq current-division 'procedure)
            (cond ((cobol--in-proc-div-param-list-p)
                   ;; Indent procedure division parameter list twice.
-                  (cobol--indent (cobol--search-back-for-indent cobol--procedure-division-re)
-                                2))
-                ((cobol--in-if-eval-when-or-perform-cond-p)
-                 ;; Indent after IF/EVALUATE/WHEN/non-procedural PEROFRM twice.
-                 (cobol--indent (cobol--search-back-for-indent
-                                cobol--phrases-with-double-indent-after
-                                :with-whitespace t)
-                               2))
-                ;; Indent once after any other statement.
-                (t
-                 (cobol--indent (cobol--indent-of-last-statement))))))))
+                  ;; NOTE: Fulhack, men nu linjerar parametrarna upp till P. DIV
+                  (cobol--search-back
+                   (lambda () (when (looking-at-p cobol--procedure-division-re)
+                                (cons t 25)))))
+                 ;; (cobol--indent (cobol--search-back-for-indent cobol--procedure-division-re)
+                 ;;                2))
+                 ((cobol--in-if-eval-when-or-perform-cond-p)
+                  ;; Indent after IF/EVALUATE/WHEN/non-procedural PEROFRM twice.
+                  (cobol--indent (cobol--search-back-for-indent
+                                  cobol--phrases-with-double-indent-after
+                                  :with-whitespace t)
+                                 2))
+                 ;; Indent once after any other statement.
+                 (t
+                  (cobol--indent (cobol--indent-of-last-statement))))))))
 
 (defun cobol--looking-at-comment-line ()
   "Return whether we are looking at a comment line (using `looking-at')."
