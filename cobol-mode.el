@@ -3039,6 +3039,10 @@ start of area A, if fixed-format)."
 (defun cobol-indent-line ()
   "Indent current line as COBOL code."
   (interactive "*")
+  ;; FIXME: Om vi är i sekvens arean indenterar vi först direkt till kolumn 7
+  ;; Behöver göras på ett bättre sätt.
+  (when (and (> (cobol--code-start) 0)
+             (< (current-column) 7))
   (let ((indent (cobol--find-indent-of-line)))
     (if (not (eq indent (cobol--current-indentation)))
         (progn
