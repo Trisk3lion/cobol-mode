@@ -1678,7 +1678,7 @@ The next key typed is executed unless it is SPC."
     "INTRINSIC"
     "LC_ALL"
     "LC_COLLATE"
-    "LC_CTYPE"
+    v    "LC_CTYPE"
     "LC_MESSAGES"
     "LC_MONETARY"
     "LC_NUMERIC"
@@ -2575,6 +2575,12 @@ and ignored areas) between points BEG and END."
   :type (cobol--radio-of-list cobol-formats)
   :safe (cobol--val-in-list-p cobol-formats))
 
+(defcustom cobol-line-length 72
+  "Length of standard cobol line length.
+Used by `cobol-strip-sequence-nos'."
+  :group 'kh-cbl
+  :type 'integer)
+
 (defun cobol-format-word (word)
   "Return WORD formatted according to `cobol-format-style'."
   (cond
@@ -2638,6 +2644,63 @@ and ignored areas) between points BEG and END."
       (forward-line -1)
       (setf bottom-right (+ (point) 6))
       (string-rectangle top-left bottom-right (format "%-6s" text)))))
+
+(defun cobol-strip-line-numbers-2 ()
+  "Delete all text in column 1 to 7.
+This is assumed to be line numbers."
+  (interactive)
+  (save-excursion
+    (got-char (point-min))
+    (when (not (looking-at-p "\\(^$\\|^\\s-\\{6\\}\\)"))
+      (delete-region (point) (+ (point) 6))
+      (insert (make-string 6 ? )))
+    (while (forward-line 1)
+      (when (not (looking-at-p "\\(^$\\|^\\s-\\{6\\}\\)"))
+        (delete-region (point) (+ (point) 6))
+        (insert (make-string 6 ? ))))))
+
+(defun cobol-strip-line-numbers ()
+  "Delete all text in column 1 to 7.
+This is assumed to be line numbers."
+  (interactive)
+  (let ((string (make-string 6 ? )))
+    (save-excursion
+      (got-char (point-min))
+      (while (re-search-forward "^[[:graph:]]\\{1,6\\}" nil t)
+        (replace-match string)))))
+
+(defun cobol-commment-test (&optional beg end)
+  (interactive)
+  (when (region-active-p)
+    (setq beg (region-beginning))
+    (setq end (region-end)))
+  (save-excursion
+    (goto-char beg)
+    (while (re-search-forward "^.\\{6\\}\\(\\s-\\)" end t)
+      (replace-match "*" nil nil nil 1))))
+
+(defun cobol-uncommment-test (&optional beg end)
+  (interactive)
+  (when (region-active-p)
+    (setq beg (region-beginning))
+    (setq end (region-end)))
+  (save-excursion
+    (goto-char beg)
+    (while (re-search-forward "^.\\{6\\}\\(\\*>?\\|[/Dd]\\)" end t)
+      (replace-match (make-string (length (match-string 1)) ? ) nil nil nil 1))))
+
+(defun cobol-strip-sequence-nos (&optional do-space)
+  "Delete all text in column `cobol-line-length' (default 72) and up.
+This is assumed to be sequence numbers.  Normally also deletes
+trailing whitespace after stripping such text.  Supplying prefix
+arg DO-SPACE prevents stripping the whitespace."
+  (interactive "*p")
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward (format "^.\\{%d\\}\\(.*\\)" cobol-line-length)
+                              nil t)
+      (replace-match "" nil nil nil 1)
+      (unless do-space (delete-horizontal-space)))))
 
 ;;; Indentation
 ;;; Derived (a long time ago) from the wonderful Emacs Mode Tutorial at
