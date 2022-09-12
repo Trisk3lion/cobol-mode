@@ -3125,6 +3125,7 @@ start of area A, if fixed-format)."
   ;; Behöver göras på ett bättre sätt.
   (when (and (> (cobol--code-start) 0)
              (< (current-column) 7))
+	  (indent-to-column 7))
   (let ((indent (cobol--find-indent-of-line)))
     (if (not (eq indent (cobol--current-indentation)))
         (progn
