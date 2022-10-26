@@ -2669,7 +2669,7 @@ Used by `cobol-strip-sequence-nos'."
 This is assumed to be line numbers."
   (interactive)
   (save-excursion
-    (got-char (point-min))
+    (goto-char (point-min))
     (when (not (looking-at-p "\\(^$\\|^\\s-\\{6\\}\\)"))
       (delete-region (point) (+ (point) 6))
       (insert (make-string 6 ? )))
@@ -2684,7 +2684,7 @@ This is assumed to be line numbers."
   (interactive)
   (let ((string (make-string 6 ? )))
     (save-excursion
-      (got-char (point-min))
+      (goto-char (point-min))
       (while (re-search-forward "^[[:graph:]]\\{1,6\\}" nil t)
         (replace-match string)))))
 
