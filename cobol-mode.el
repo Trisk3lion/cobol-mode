@@ -87,14 +87,20 @@
   :safe #'integerp)
 
 (eval-and-compile
-(defconst cobol-formats
-  '(fixed-85 fixed-2002 free)
-  "The accepted values for `cobol-source-format'.")
+  (defconst cobol-formats
+    '(fixed-85 fixed-2002 free)
+    "The accepted values for `cobol-source-format'.")
 
-(defcustom cobol-source-format 'fixed-85
-  "Source format of COBOL source code."
-  :type (cobol--radio-of-list cobol-formats)
-  :safe (cobol--val-in-list-p cobol-formats)))
+  (defcustom cobol-source-format 'fixed-85
+    "Source format of COBOL source code."
+    :type (cobol--radio-of-list cobol-formats)
+    :safe (cobol--val-in-list-p cobol-formats)))
+
+(defcustom cobol-sequence-area-as 'whitespace
+  "Determines how to treat the sequence area when using fixed form.
+Legal values are either \='whitespace or \='comment. This determines which syntax
+class that will be used for the sequence area."
+  :type 'symbol)
 
 ;; Ruler
 ;; Code derived from the Emacs fortran.el, rulers from IBM Rational Developer.
@@ -2000,32 +2006,32 @@ lines.")
   "Regexp matching a free-form source comment.")
 
 (eval-and-compile
-(defconst cobol--optional-whitespace-re
-  "[ 	]*" ; Space and tab
-  "Regexp matching optional whitespace.
+  (defconst cobol--optional-whitespace-re
+    "[ 	]*" ; Space and tab
+    "Regexp matching optional whitespace.
 \\w isn't used to avoid matching newlines.")
 
-(defconst cobol--optional-leading-whitespace-line-re
-  (if (not (eq cobol-source-format 'free))
-      (concat cobol--fixed-non-comment-sequence-area-re
-              cobol--optional-whitespace-re)
-    (concat "^" cobol--optional-whitespace-re))
-  "Regexp matching a line perhaps starting with whitespace.")
+  (defconst cobol--optional-leading-whitespace-line-re
+    (if (not (eq cobol-source-format 'free))
+        (concat cobol--fixed-non-comment-sequence-area-re
+                cobol--optional-whitespace-re)
+      (concat "^" cobol--optional-whitespace-re))
+    "Regexp matching a line perhaps starting with whitespace.")
 
-(defun cobol--with-opt-whitespace-line (&rest strs)
-  "Return STRS concatenated after `cobol--optional-leading-whitespace-line-re'."
-  (apply #'concat cobol--optional-leading-whitespace-line-re strs)))
+  (defun cobol--with-opt-whitespace-line (&rest strs)
+    "Return STRS concatenated after `cobol--optional-leading-whitespace-line-re'."
+    (apply #'concat cobol--optional-leading-whitespace-line-re strs)))
 
 (defconst cobol--free-form-comment-line-re
   (cobol--with-opt-whitespace-line cobol--free-form-comment-re)
   "Regexp matching a free form comment line.")
 
 (defconst cobol--identifier-re
-  "\\s-+\\(\\w+\\)"
+  "\\s-+\\(\\S-+\\)"
   "Regexp matching an identifier in a separate group preceded by whitespace.")
 
 (defconst cobol--mf-set-directive
-  (cobol--with-opt-whitespace-line "\\$SET\\s-+\\w+")
+  (cobol--with-opt-whitespace-line "\\$SET\\s-+\\S-+")
   "Regexp matching MF compiler directive with optional whitespace.")
 
 (defconst cobol--mf-compiler-directive-re
@@ -2082,7 +2088,7 @@ lines.")
 COBOL.")
 
 (defconst cobol--id-and-name-re
-  "-ID\\.?\\s-*\\(\\w+\\)"
+  "-ID\\.?\\s-*\\(\\S-+\\)"
   "Regexp matching a construct ID and the name of the declared construct.")
 
 (defun cobol--create-id-re (re)
@@ -2140,7 +2146,7 @@ Focus.")
 syntax.")
 
 (defconst cobol--procedure-re
-  "^.\\{6\\}[^*/]\\(\\w+\\)\\(\\s-+SECTION\\)?\\."
+  "^.\\{6\\}[^*/]\\(\\S-+\\)\\(\\s-+SECTION\\)?\\."
   "Regexp matching the declaration of a procedure.
 Note that this matches DECLARATIVES.")
 
@@ -2160,7 +2166,7 @@ Note that this matches DECLARATIVES.")
   "Regexp matching the type of a string-style literal.")
 
 (defconst cobol--function-call-re
-  "\\(\\w+\\)("
+  "\\(\\S-+\\)("
   "Regexp matching a function call.")
 
 (defun cobol--create-specifier-type-re (types)
@@ -2184,7 +2190,7 @@ Note that this matches DECLARATIVES.")
   "Regexp matching a class being INVOKED.")
 
 (defconst cobol--implementer-user-exception-re
-  "EC-\\(IMP\\|USER\\)-\\w+"
+  "EC-\\(IMP\\|USER\\)-\\S-+"
   "Regexp matching an implementor- or user-defined exception condition.")
 
 (defconst cobol--scope-terminator-re
@@ -2316,7 +2322,14 @@ Code copied from the Emacs source."
             ;; first character in another escaped quote sequence.
             (forward-char 1))))))
     "Syntax rule to mark the first of adjacent quotes.
-It marks the first of \"\" or '' as an escape character."))
+It marks the first of \"\" or '' as an escape character.")
+
+  (defconst cobol--syntax-propertize-sequence-area
+    (syntax-propertize-precompile-rules
+     (cobol--fixed-form-sequence-area-re (1 " ")))
+    "Syntax rule to mark all text in sequence area as whitespace."))
+
+
 
 (defun cobol--syntax-propertize-function (beg end)
   "Syntax propertize awkward COBOL features (fixed-form comments, indicators
@@ -2324,15 +2337,28 @@ and ignored areas) between points BEG and END."
   ;; TO-DO: Propertize continuation lines.
   (funcall
    (pcase cobol-source-format
-     (`fixed-85 (syntax-propertize-rules
-                 cobol--syntax-propertize-indicator-area
-                 cobol--syntax-propertize-program-name-area
-                 cobol--syntax-propertize-page-directive
-                 cobol--syntax-propertize-adjacent-quotes))
-     (`fixed-2002 (syntax-propertize-rules
-                   cobol--syntax-propertize-indicator-area
-                   cobol--syntax-propertize-page-directive
-                   cobol--syntax-propertize-adjacent-quotes))
+     (`fixed-85 (cond ((eq 'whitespace cobol-sequence-area-as)
+                       (syntax-propertize-rules
+                        cobol--syntax-propertize-indicator-area
+                        cobol--syntax-propertize-program-name-area
+                        cobol--syntax-propertize-page-directive
+                        cobol--syntax-propertize-adjacent-quotes
+                        cobol--syntax-propertize-sequence-area))
+                      (t (syntax-propertize-rules
+                          cobol--syntax-propertize-indicator-area
+                          cobol--syntax-propertize-program-name-area
+                          cobol--syntax-propertize-page-directive
+                          cobol--syntax-propertize-adjacent-quotes))))
+     (`fixed-2002 (cond ((eq 'whitespace cobol-sequence-area-as)
+                         (syntax-propertize-rules
+                          cobol--syntax-propertize-indicator-area
+                          cobol--syntax-propertize-page-directive
+                          cobol--syntax-propertize-adjacent-quotes
+                          cobol--syntax-propertize-sequence-area))
+                        (t (syntax-propertize-rules
+                            cobol--syntax-propertize-indicator-area
+                            cobol--syntax-propertize-page-directive
+                            cobol--syntax-propertize-adjacent-quotes))))
      (_ (syntax-propertize-rules
          cobol--syntax-propertize-page-directive
          cobol--syntax-propertize-adjacent-quotes)))
@@ -2631,7 +2657,6 @@ Used by `cobol-strip-sequence-nos'."
   (defconst words-to-format
     (append cobol-directives cobol-verbs cobol-keywords cobol-intrinsics
             cobol-symbolic-literals))
-
   (save-excursion
     (dolist (word words-to-format)
       (let ((ref-point (point-min)))
@@ -2663,20 +2688,6 @@ Used by `cobol-strip-sequence-nos'."
       (forward-line -1)
       (setf bottom-right (+ (point) 6))
       (string-rectangle top-left bottom-right (format "%-6s" text)))))
-
-(defun cobol-strip-line-numbers-2 ()
-  "Delete all text in column 1 to 7.
-This is assumed to be line numbers."
-  (interactive)
-  (save-excursion
-    (goto-char (point-min))
-    (when (not (looking-at-p "\\(^$\\|^\\s-\\{6\\}\\)"))
-      (delete-region (point) (+ (point) 6))
-      (insert (make-string 6 ? )))
-    (while (forward-line 1)
-      (when (not (looking-at-p "\\(^$\\|^\\s-\\{6\\}\\)"))
-        (delete-region (point) (+ (point) 6))
-        (insert (make-string 6 ? ))))))
 
 (defun cobol-strip-line-numbers ()
   "Delete all text in column 1 to 7.
@@ -2779,7 +2790,7 @@ after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
 
 (defun cobol--indent-of-last-div-or-section ()
   "Return the indent of the preceding division or section."
-  (cobol--search-back-for-indent "\\w+\\s-+\\(DIVISION\\|SECTION\\)\\." :with-whitespace t))
+  (cobol--search-back-for-indent "\\S-+\\s-+\\(DIVISION\\|SECTION\\)\\." :with-whitespace t))
 
 (defun cobol--indent-of-end-marker-match (group)
   "Return the indent of the start of GROUP."
@@ -2887,12 +2898,12 @@ lines."
 
 (defun cobol--scope-terminator-statement (scope-terminator)
   "Return the statement contained in SCOPE-TERMINATOR."
-  (cobol--match-with-leading-whitespace "END-\\(\\w+\\)" scope-terminator)
+  (cobol--match-with-leading-whitespace "END-\\(\\S-+\\)" scope-terminator)
   (match-string 1 scope-terminator))
 
 (defun cobol--first-word (str)
   "Return the first word in STR."
-  (cobol--match-with-leading-whitespace "\\(\\w+\\)" str)
+  (cobol--match-with-leading-whitespace "\\(\\S-+\\)" str)
   (match-string 1 str))
 
 (defun cobol--go-to-open-statement (statements)
@@ -2940,7 +2951,7 @@ lines."
           ((string-equal phrase "WHEN")
            (cobol--indent (cobol--indent-of-open-statement
                            (cobol--statements-with-phrase str))
-                          0.5))
+                          0))
           (t
            (cobol--indent (cobol--indent-of-open-statement
                            (cobol--statements-with-phrase str)))))))
@@ -3034,7 +3045,7 @@ the clauses of a non-procedural PERFORM."
                  ;; (cobol--indent (cobol--search-back-for-indent cobol--procedure-division-re)
                  ;;                2))
                  ((cobol--in-if-eval-when-or-perform-cond-p)
-                  ;; Indent after IF/EVALUATE/WHEN/non-procedural PEROFRM twice.
+                  ;; Indent after IF/EVALUATE/WHEN/non-procedural PERFORM twice.
                   (cobol--indent (cobol--search-back-for-indent
                                   cobol--phrases-with-double-indent-after
                                   :with-whitespace t)
@@ -3154,16 +3165,40 @@ start of area A, if fixed-format)."
     ))
 
 (defvar cobol-mode-syntax-table
-  (let ((st (make-syntax-table)))
-    (modify-syntax-entry ?-  "w"   st)
-    (modify-syntax-entry ?_  "w"   st)
-    (modify-syntax-entry ?*  ". 1" st)
-    (modify-syntax-entry ?>  "w 2" st)
-    (modify-syntax-entry ?\\ "."   st)
-    (modify-syntax-entry ?'  "\""  st)
-    (modify-syntax-entry ?\" "\""  st)
-    (modify-syntax-entry ?\n ">"   st)
-    st))
+  (let ((table (make-syntax-table)))
+    ;; Initialize ASCII charset as symbol syntax
+    (modify-syntax-entry '(0 . 127) "_" table)
+
+    ;; Word syntax
+    (modify-syntax-entry '(?0 . ?9) "w" table)
+    (modify-syntax-entry '(?a . ?z) "w" table)
+    (modify-syntax-entry '(?A . ?Z) "w" table)
+
+    ;; Whitespace
+    (modify-syntax-entry ?\s " " table)
+    (modify-syntax-entry ?\xa0 " " table) ; non-breaking space
+    (modify-syntax-entry ?\t " " table)
+    (modify-syntax-entry ?\f " " table)
+
+    ;; Delimiters
+    (modify-syntax-entry ?\( "()" table)
+    (modify-syntax-entry ?\) ")(" table)
+    (modify-syntax-entry ?\[ "(]" table)
+    (modify-syntax-entry ?\] ")[" table)
+    (modify-syntax-entry ?\{ "(}" table)
+    (modify-syntax-entry ?\} "){" table)
+
+
+    ;; Comments
+    (modify-syntax-entry ?*  ". 1" table)
+    (modify-syntax-entry ?>  "w 2" table)
+    (modify-syntax-entry ?\n ">"   table)
+
+    (modify-syntax-entry ?=  "."   table)
+    (modify-syntax-entry ?\\ "."   table)
+    (modify-syntax-entry ?'  "\""  table)
+    (modify-syntax-entry ?\" "\""  table)
+    table))
 
 (defvar ac-ignore-case)
 
