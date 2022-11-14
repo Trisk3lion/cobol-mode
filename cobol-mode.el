@@ -2194,7 +2194,7 @@ Note that this matches DECLARATIVES.")
   "Regexp matching an implementor- or user-defined exception condition.")
 
 (defconst cobol--scope-terminator-re
-  (cobol--with-opt-whitespace-line (regexp-opt cobol-scope-terminators 'words))
+  (cobol--with-opt-whitespace-line (regexp-opt cobol-scope-terminators 'symbols))
   "Regexp matching a scope terminator.")
 
 (defconst cobol--phrases-with-double-indent-after
@@ -2209,7 +2209,7 @@ Note that this matches DECLARATIVES.")
   "Regexp matching statements/phrases that contain nested statements.")
 
 (defconst cobol--verb-re
-  (cobol--with-opt-whitespace-line (regexp-opt cobol-verbs 'words))
+  (cobol--with-opt-whitespace-line (regexp-opt cobol-verbs 'symbols))
   "Regexp matching a verb.")
 
 (defconst cobol--non-id-groups
@@ -2219,7 +2219,7 @@ Note that this matches DECLARATIVES.")
 
 (defconst cobol--non-id-group-end-marker-re
   (cobol--with-opt-whitespace-line
-   "END\\s-+" (regexp-opt cobol--non-id-groups 'words))
+   "END\\s-+" (regexp-opt cobol--non-id-groups 'symbols))
   "Regexp matching the end marker of the groups not taking IDs.")
 
 (defconst cobol--end-marker-re
@@ -2378,15 +2378,15 @@ and ignored areas) between points BEG and END."
      ;; TO-DO: Highlight reserved words in directives as reserved words
 
      ;; Standard language features.
-     ( ,(regexp-opt cobol-verbs 'words) . 'cobol-verb)
-     ( ,(regexp-opt cobol-keywords 'words) . font-lock-keyword-face)
-     ( ,(regexp-opt cobol-context-sensitive-keywords 'words)
+     ( ,(regexp-opt cobol-verbs 'symbols) . 'cobol-verb)
+     ( ,(regexp-opt cobol-keywords 'symbols) . font-lock-keyword-face)
+     ( ,(regexp-opt cobol-context-sensitive-keywords 'symbols)
        . 'cobol-context-sensitive)
      ( ,cobol--implementer-user-exception-re . 'cobol-context-sensitive)
-     ( ,(regexp-opt cobol-intrinsics 'words) . font-lock-builtin-face)
+     ( ,(regexp-opt cobol-intrinsics 'symbols) . font-lock-builtin-face)
 
      ;; Constants
-     ( ,(regexp-opt cobol-symbolic-literals 'words) . font-lock-constant-face)
+     ( ,(regexp-opt cobol-symbolic-literals 'symbols) . font-lock-constant-face)
      ( ,cobol--standard-constant-re
        (1 'font-lock-constant-face))
      ( ,cobol--mf-constant-re
@@ -2661,7 +2661,7 @@ Used by `cobol-strip-sequence-nos'."
     (dolist (word words-to-format)
       (let ((ref-point (point-min)))
         (goto-char beg)
-        (while (search-forward-regexp (concat "\\<" word "\\>") end t)
+        (while (search-forward-regexp (concat "\\_<" word "\\_>") end t)
           (when (not (let ((state (parse-partial-sexp ref-point (point))))
                        (or (nth 3 state) (nth 4 state))))
             (replace-match (cobol-format-word word) t)))))))
