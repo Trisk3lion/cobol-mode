@@ -2027,7 +2027,7 @@ lines.")
   "Regexp matching a free form comment line.")
 
 (defconst cobol--identifier-re
-  "\\s-+\\(\\S-+\\)"
+  "\\s-+\\(\\S-+\\)\\_>"
   "Regexp matching an identifier in a separate group preceded by whitespace.")
 
 (defconst cobol--mf-set-directive
@@ -2205,7 +2205,7 @@ Note that this matches DECLARATIVES.")
   (cobol--with-opt-whitespace-line
    "\\("
    cobol--phrases-with-double-indent-after
-   "\\|\\(NOT\\s-+\\)?\\(\\(AT\\s-+\\)?END\\(-OF-PAGE\\)?\\>\\|\\(ON\\s-+\\)?\\(OVERFLOW\\|EXCEPTION\\|ESCAPE\\|SIZE\\s-+ERROR\\)\\|INVALID\\s-+KEY\\)\\)")
+   "\\|\\(NOT\\s-+\\)?\\(\\(AT\\s-+\\)?END\\(-OF-PAGE\\)?\\_>\\|\\(ON\\s-+\\)?\\(OVERFLOW\\|EXCEPTION\\|ESCAPE\\|SIZE\\s-+ERROR\\)\\|INVALID\\s-+KEY\\)\\)")
   "Regexp matching statements/phrases that contain nested statements.")
 
 (defconst cobol--verb-re
@@ -2371,7 +2371,7 @@ and ignored areas) between points BEG and END."
 
      ;; Directives
      ( ,(concat cobol--directive-indicator-re
-                "\\(" (regexp-opt cobol-directives) "\\>\\)")
+                "\\(" (regexp-opt cobol-directives) "\\_>\\)")
        . font-lock-preprocessor-face)
      ( ,cobol--mf-compiler-directive-re . font-lock-preprocessor-face)
 
@@ -2898,12 +2898,12 @@ lines."
 
 (defun cobol--scope-terminator-statement (scope-terminator)
   "Return the statement contained in SCOPE-TERMINATOR."
-  (cobol--match-with-leading-whitespace "END-\\(\\S-+\\)" scope-terminator)
+  (cobol--match-with-leading-whitespace "END-\\(\\S-+\\)\\_>" scope-terminator)
   (match-string 1 scope-terminator))
 
 (defun cobol--first-word (str)
   "Return the first word in STR."
-  (cobol--match-with-leading-whitespace "\\(\\S-+\\)" str)
+  (cobol--match-with-leading-whitespace "\\(\\S-+\\)\\_>" str)
   (match-string 1 str))
 
 (defun cobol--go-to-open-statement (statements)
@@ -3198,8 +3198,8 @@ start of area A, if fixed-format)."
     (modify-syntax-entry ?\\ "."   table)
     (modify-syntax-entry ?'  "\""  table)
     (modify-syntax-entry ?\" "\""  table)
-    (modify-syntax-entry ?. "."  table)
-    (modify-syntax-entry ?, "."  table)
+    (modify-syntax-entry ?.  "."   table)
+    (modify-syntax-entry ?,  "."   table)
     table))
 
 (defvar ac-ignore-case)
