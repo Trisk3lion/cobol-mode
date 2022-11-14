@@ -2027,11 +2027,11 @@ lines.")
   "Regexp matching a free form comment line.")
 
 (defconst cobol--identifier-re
-  "\\s-+\\(\\S-+\\)\\_>"
+  "\\s-+\\(\\sw\\|\\s_\\)+\\_>"
   "Regexp matching an identifier in a separate group preceded by whitespace.")
 
 (defconst cobol--mf-set-directive
-  (cobol--with-opt-whitespace-line "\\$SET\\s-+\\S-+")
+  (cobol--with-opt-whitespace-line "\\$SET\\s-+\\(?:\\sw\\|\\s_\\)+")
   "Regexp matching MF compiler directive with optional whitespace.")
 
 (defconst cobol--mf-compiler-directive-re
@@ -2088,7 +2088,7 @@ lines.")
 COBOL.")
 
 (defconst cobol--id-and-name-re
-  "-ID\\.?\\s-*\\(\\S-+\\)"
+  "-ID\\.?\\s-*\\(\\sw\\|\\s_\\)+"
   "Regexp matching a construct ID and the name of the declared construct.")
 
 (defun cobol--create-id-re (re)
@@ -2146,7 +2146,7 @@ Focus.")
 syntax.")
 
 (defconst cobol--procedure-re
-  "^.\\{6\\}[^*/]\\(\\S-+\\)\\(\\s-+SECTION\\)?\\."
+  "^.\\{6\\}[^*/]\\(\\sw\\|\\s_\\)+\\(\\s-+SECTION\\)?\\."
   "Regexp matching the declaration of a procedure.
 Note that this matches DECLARATIVES.")
 
@@ -2166,7 +2166,7 @@ Note that this matches DECLARATIVES.")
   "Regexp matching the type of a string-style literal.")
 
 (defconst cobol--function-call-re
-  "\\(\\S-+\\)("
+  "\\(\\sw\\|\\s_\\)+("
   "Regexp matching a function call.")
 
 (defun cobol--create-specifier-type-re (types)
@@ -2190,7 +2190,7 @@ Note that this matches DECLARATIVES.")
   "Regexp matching a class being INVOKED.")
 
 (defconst cobol--implementer-user-exception-re
-  "EC-\\(IMP\\|USER\\)-\\S-+"
+  "EC-\\(IMP\\|USER\\)-\\(?:\\sw\\|\\s_\\)+"
   "Regexp matching an implementor- or user-defined exception condition.")
 
 (defconst cobol--scope-terminator-re
@@ -2790,7 +2790,7 @@ after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
 
 (defun cobol--indent-of-last-div-or-section ()
   "Return the indent of the preceding division or section."
-  (cobol--search-back-for-indent "\\S-+\\s-+\\(DIVISION\\|SECTION\\)\\." :with-whitespace t))
+  (cobol--search-back-for-indent "\\(?:\\sw\\|\\s_\\)+\\s-+\\(DIVISION\\|SECTION\\)\\." :with-whitespace t))
 
 (defun cobol--indent-of-end-marker-match (group)
   "Return the indent of the start of GROUP."
@@ -2811,13 +2811,13 @@ after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
 
 (defun cobol--get-level-number (declaration)
   "Return the level-number of DECLARATION.
-If the declaration does not have a level number, return zero."
+  If the declaration does not have a level number, return zero."
   (string-match cobol--generic-declaration-re declaration)
   (string-to-number (match-string 1 declaration)))
 
 (defun cobol--indent-of-group-item (wanted-level-num)
   "Return the indentation of the last item with WANTED-LEVEL-NUM or indented
-from the last item of lower level."
+  from the last item of lower level."
   (cobol--search-back
    #'(lambda ()
        (cond ((looking-at cobol--generic-declaration-re)
@@ -2842,7 +2842,7 @@ from the last item of lower level."
 
 (defun cobol--indent-from-previous ()
   "Return what the indent of the current line should be based on previous
-lines."
+  lines."
   (cobol--search-back
    #'(lambda ()
        (cond ((looking-at cobol--env-or-data-div-sections-re)
@@ -2898,12 +2898,12 @@ lines."
 
 (defun cobol--scope-terminator-statement (scope-terminator)
   "Return the statement contained in SCOPE-TERMINATOR."
-  (cobol--match-with-leading-whitespace "END-\\(\\S-+\\)\\_>" scope-terminator)
+  (cobol--match-with-leading-whitespace "END-\\(\\sw\\|\\s_\\)+\\_>" scope-terminator)
   (match-string 1 scope-terminator))
 
 (defun cobol--first-word (str)
   "Return the first word in STR."
-  (cobol--match-with-leading-whitespace "\\(\\S-+\\)\\_>" str)
+  (cobol--match-with-leading-whitespace "\\(\\sw\\|\\s_\\)+\\_>" str)
   (match-string 1 str))
 
 (defun cobol--go-to-open-statement (statements)
@@ -2983,10 +2983,10 @@ lines."
 
 (defmacro cobol--no-instances-of (re after re2 in division)
   "Return non-nil if there are no instances of things matched by RE
-between point and the previous instance of RE2.
-Return nil if point is not in DIVISION or if nothing is found.
-Arguments must be in the form 'RE after RE2 in DIVISION' where
-`after' and `in' stand for themselves."
+  between point and the previous instance of RE2.
+  Return nil if point is not in DIVISION or if nothing is found.
+  Arguments must be in the form 'RE after RE2 in DIVISION' where
+  `after' and `in' stand for themselves."
   (cl-assert (and (eq after 'after)
                   (eq in 'in))
              nil
@@ -3001,7 +3001,7 @@ Arguments must be in the form 'RE after RE2 in DIVISION' where
 
 (defun cobol--no-statements-after (re)
   "Return whether there are any statements between point and the previous
-instance of RE."
+  instance of RE."
   (cobol--no-instances-of cobol--verb-re
                          after re
                          in 'procedure))
@@ -3012,7 +3012,7 @@ instance of RE."
 
 (defun cobol--in-if-eval-when-or-perform-cond-p ()
   "Return whether point is in the condition of an IF, EVALUATE or WHEN or in
-the clauses of a non-procedural PERFORM."
+  the clauses of a non-procedural PERFORM."
   (cobol--no-statements-after (cobol--with-opt-whitespace-line
                               cobol--phrases-with-double-indent-after)))
 
@@ -3121,7 +3121,7 @@ the clauses of a non-procedural PERFORM."
 
 (defun cobol--indent-point ()
   "Indent point to the next multiple of `cobol-tab-width' (relative to the
-start of area A, if fixed-format)."
+                                                                    start of area A, if fixed-format)."
   (cobol--indent-point-to-col
    (+ (current-column) (- cobol-tab-width
                           (% (if (cobol--fixed-format-p)
