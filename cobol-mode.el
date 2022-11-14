@@ -2907,7 +2907,7 @@ Note that this matches DECLARATIVES.")
 
 (defun cobol--scope-terminator-statement (scope-terminator)
   "Return the statement contained in SCOPE-TERMINATOR."
-  (cobol--match-with-leading-whitespace (concat "END-" cobol-symbol-re "+") scope-terminator)
+  (cobol--match-with-leading-whitespace (concat "END-" "\\(" cobol-symbol-re "+\\)") scope-terminator)
   (match-string 1 scope-terminator))
 
 (defun cobol--first-word (str)
