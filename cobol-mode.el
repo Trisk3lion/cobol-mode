@@ -1950,6 +1950,12 @@ The next key typed is executed unless it is SPC."
 
 ;;; Highlighting regexps
 
+(rx-define cobol-word (+ (or (syntax word) (syntax symbol))))
+
+(rx-define cobol-n-area (bol (repeat 1 6 nonl)))
+
+(rx-define cobol-comment-char (any "*/"))
+
 (defconst cobol--fixed-form-sequence-area-re
   "^.\\{1,6\\}"
   "Regexp matching the fixed-form sequence area.")
@@ -2149,7 +2155,7 @@ Focus.")
 syntax.")
 
 (defconst cobol--procedure-re
-  "^.\\{6\\}[^*/]\\(" cobol-symbol-re "+\\)\\(\\s-+SECTION\\)?\\."
+  (concat "^.\\{6\\}[^*/]\\(" cobol-symbol-re "+\\)\\(\\s-+SECTION\\)?\\.")
   "Regexp matching the declaration of a procedure.
 Note that this matches DECLARATIVES.")
 
@@ -2793,7 +2799,7 @@ Note that this matches DECLARATIVES.")
 
 (defun cobol--indent-of-last-div-or-section ()
   "Return the indent of the preceding division or section."
-  (cobol--search-back-for-indent (concat cobol-symbol-re "+\\s-+\\(DIVISION\\|SECTION\\)\\." :with-whitespace t)))
+  (cobol--search-back-for-indent (concat cobol-symbol-re "+\\s-+\\(DIVISION\\|SECTION\\)\\.") :with-whitespace t))
 
 (defun cobol--indent-of-end-marker-match (group)
   "Return the indent of the start of GROUP."
@@ -2901,7 +2907,7 @@ Note that this matches DECLARATIVES.")
 
 (defun cobol--scope-terminator-statement (scope-terminator)
   "Return the statement contained in SCOPE-TERMINATOR."
-  (cobol--match-with-leading-whitespace (concat "END-" cobol-symbol-re "+" scope-terminator))
+  (cobol--match-with-leading-whitespace (concat "END-" cobol-symbol-re "+") scope-terminator)
   (match-string 1 scope-terminator))
 
 (defun cobol--first-word (str)
