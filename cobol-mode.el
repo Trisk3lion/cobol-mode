@@ -1956,39 +1956,39 @@ The next key typed is executed unless it is SPC."
 
 (rx-define cobol-comment-char (any "*/"))
 
-(defconst cobol--fixed-form-sequence-area-re
-  "^.\\{1,6\\}"
-  "Regexp matching the fixed-form sequence area.")
-
 (eval-and-compile
-(defconst cobol--complete-sequence-area-re
-  "^.\\{6\\}"
-  "Regexp matching a complete sequence area.")
+  (defconst cobol--fixed-form-sequence-area-re
+    "^.\\{1,6\\}"
+    "Regexp matching the fixed-form sequence area.")
 
-(defconst cobol--fixed-comment-indicators
-  "*/"
-  "String containing COBOL fixed-form comment indicator characters.")
+  (defconst cobol--complete-sequence-area-re
+    "^.\\{6\\}"
+    "Regexp matching a complete sequence area.")
 
-(defconst cobol--fixed-form-comment-re
-  (concat cobol--complete-sequence-area-re
-          "\\(["
-          cobol--fixed-comment-indicators
-          "]\\)")
-  "Regexp matching a fixed-form source comment.")
+  (defconst cobol--fixed-comment-indicators
+    "*/"
+    "String containing COBOL fixed-form comment indicator characters.")
 
-(defconst cobol--continuation-or-debugging-indicator-re
-  (concat cobol--complete-sequence-area-re
-          "\\([d-]\\)")
-  "Regexp matching a continuation or debugging line indicator.")
+  (defconst cobol--fixed-form-comment-re
+    (concat cobol--complete-sequence-area-re
+            "\\(["
+            cobol--fixed-comment-indicators
+            "]\\)")
+    "Regexp matching a fixed-form source comment.")
 
-(defconst cobol--non-fixed-comment-indicators-re
-  (concat "[^" cobol--fixed-comment-indicators "]")
-  "Regexp matching non-fixed-form-comment-indicator characters.")
+  (defconst cobol--continuation-or-debugging-indicator-re
+    (concat cobol--complete-sequence-area-re
+            "\\([d-]\\)")
+    "Regexp matching a continuation or debugging line indicator.")
 
-(defconst cobol--fixed-non-comment-sequence-area-re
-  (concat cobol--complete-sequence-area-re
-          cobol--non-fixed-comment-indicators-re)
-  "Regexp matching the sequence area of a non-comment fixed-form line."))
+  (defconst cobol--non-fixed-comment-indicators-re
+    (concat "[^" cobol--fixed-comment-indicators "]")
+    "Regexp matching non-fixed-form-comment-indicator characters.")
+
+  (defconst cobol--fixed-non-comment-sequence-area-re
+    (concat cobol--complete-sequence-area-re
+            cobol--non-fixed-comment-indicators-re)
+    "Regexp matching the sequence area of a non-comment fixed-form line."))
 
 (defconst cobol--fixed-non-comment-grouped-sequence-area-re
   (concat "\\(" cobol--fixed-form-sequence-area-re "\\)")
