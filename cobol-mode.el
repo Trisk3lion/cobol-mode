@@ -2906,7 +2906,7 @@ Note that this matches DECLARATIVES.")
 
 (defun cobol--first-word (str)
   "Return the first word in STR."
-  (cobol--match-with-leading-whitespace "\\(\\<_.+?\\_>\\)" str)
+  (cobol--match-with-leading-whitespace (concat "\\(" cobol-symbol-re "+\\)") str)
   (match-string 1 str))
 
 (defun cobol--go-to-open-statement (statements)
