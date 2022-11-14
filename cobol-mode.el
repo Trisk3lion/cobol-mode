@@ -3198,6 +3198,8 @@ start of area A, if fixed-format)."
     (modify-syntax-entry ?\\ "."   table)
     (modify-syntax-entry ?'  "\""  table)
     (modify-syntax-entry ?\" "\""  table)
+    (modify-syntax-entry ?. "."  table)
+    (modify-syntax-entry ?, "."  table)
     table))
 
 (defvar ac-ignore-case)
