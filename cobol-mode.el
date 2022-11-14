@@ -150,6 +150,9 @@ The next key typed is executed unless it is SPC."
   "Return a list of strings in L1 not in L2."
   (cl-set-difference l1 l2 :test #'string-equal))
 
+(defconst cobol-symbol-re
+  "\\(?:\\sw\\|s_\\)")
+
 (defconst cobol-directives
   '("CALL-CONVENTION"
     "D"
@@ -2027,11 +2030,11 @@ lines.")
   "Regexp matching a free form comment line.")
 
 (defconst cobol--identifier-re
-  "\\s-+\\(\\sw\\|\\s_\\)+\\_>"
+  (concat "\\s-+\\(" cobol-symbol-re "+\\)")
   "Regexp matching an identifier in a separate group preceded by whitespace.")
 
 (defconst cobol--mf-set-directive
-  (cobol--with-opt-whitespace-line "\\$SET\\s-+\\(?:\\sw\\|\\s_\\)+")
+  (cobol--with-opt-whitespace-line (concat "\\$SET\\s-+" cobol-symbol-re "+"))
   "Regexp matching MF compiler directive with optional whitespace.")
 
 (defconst cobol--mf-compiler-directive-re
@@ -2088,7 +2091,7 @@ lines.")
 COBOL.")
 
 (defconst cobol--id-and-name-re
-  "-ID\\.?\\s-*\\(\\sw\\|\\s_\\)+"
+  (concat "-ID\\.?\\s-*\\(" cobol-symbol-re "+\\)")
   "Regexp matching a construct ID and the name of the declared construct.")
 
 (defun cobol--create-id-re (re)
@@ -2146,7 +2149,7 @@ Focus.")
 syntax.")
 
 (defconst cobol--procedure-re
-  "^.\\{6\\}[^*/]\\(\\sw\\|\\s_\\)+\\(\\s-+SECTION\\)?\\."
+  "^.\\{6\\}[^*/]\\(" cobol-symbol-re "+\\)\\(\\s-+SECTION\\)?\\."
   "Regexp matching the declaration of a procedure.
 Note that this matches DECLARATIVES.")
 
@@ -2166,7 +2169,7 @@ Note that this matches DECLARATIVES.")
   "Regexp matching the type of a string-style literal.")
 
 (defconst cobol--function-call-re
-  "\\(\\sw\\|\\s_\\)+("
+  (concat "\\( "cobol-symbol-re "+\\)(")
   "Regexp matching a function call.")
 
 (defun cobol--create-specifier-type-re (types)
@@ -2190,7 +2193,7 @@ Note that this matches DECLARATIVES.")
   "Regexp matching a class being INVOKED.")
 
 (defconst cobol--implementer-user-exception-re
-  "EC-\\(IMP\\|USER\\)-\\(?:\\sw\\|\\s_\\)+"
+  (concat "EC-\\(IMP\\|USER\\)-" cobol-symbol-re "+")
   "Regexp matching an implementor- or user-defined exception condition.")
 
 (defconst cobol--scope-terminator-re
@@ -2267,8 +2270,8 @@ Note that this matches DECLARATIVES.")
 ;; area is marked as a comment, not whitespace.
 (defun cobol-back-to-indentation ()
   "Move point to the first non-whitespace character on this line.
-If in fixed-form code, the sequence area and indicators are skipped.
-Code copied from the Emacs source."
+  If in fixed-form code, the sequence area and indicators are skipped.
+  Code copied from the Emacs source."
   (interactive "^")
   (beginning-of-line 1)
   (when (cobol--fixed-format-p)
@@ -2322,7 +2325,7 @@ Code copied from the Emacs source."
             ;; first character in another escaped quote sequence.
             (forward-char 1))))))
     "Syntax rule to mark the first of adjacent quotes.
-It marks the first of \"\" or '' as an escape character.")
+  It marks the first of \"\" or '' as an escape character.")
 
   (defconst cobol--syntax-propertize-sequence-area
     (syntax-propertize-precompile-rules
@@ -2333,7 +2336,7 @@ It marks the first of \"\" or '' as an escape character.")
 
 (defun cobol--syntax-propertize-function (beg end)
   "Syntax propertize awkward COBOL features (fixed-form comments, indicators
-and ignored areas) between points BEG and END."
+                                                        and ignored areas) between points BEG and END."
   ;; TO-DO: Propertize continuation lines.
   (funcall
    (pcase cobol-source-format
@@ -2460,13 +2463,13 @@ and ignored areas) between points BEG and END."
 
 (defvar cobol-skeleton-alist nil
   "Alist of code templates.
-You can extend this alist to your heart's content.  For each additional
-template NAME in the list, declare a keyboard macro or function (or
-interactive command) called `cobol-skeleton-NAME'.
-If `cobol-skeleton-NAME' is a function it takes no arguments and should
-insert the template at point; if this is a command it may accept any
-sensible interactive call arguments; keyboard macros can't take
-arguments at all.")
+  You can extend this alist to your heart's content.  For each additional
+  template NAME in the list, declare a keyboard macro or function (or
+                                                                   interactive command) called `cobol-skeleton-NAME'.
+  If `cobol-skeleton-NAME' is a function it takes no arguments and should
+  insert the template at point; if this is a command it may accept any
+  sensible interactive call arguments; keyboard macros can't take
+  arguments at all.")
 
 
 (defmacro cobol--def-skeleton (name doc interactor &rest elements)
@@ -2622,7 +2625,7 @@ arguments at all.")
 
 (defcustom cobol-line-length 72
   "Length of standard cobol line length.
-Used by `cobol-strip-sequence-nos'."
+  Used by `cobol-strip-sequence-nos'."
   :group 'kh-cbl
   :type 'integer)
 
@@ -2642,13 +2645,13 @@ Used by `cobol-strip-sequence-nos'."
 
 (defun cobol-format-region (beg end)
   "Format all COBOL words between BEG and END according to
-`cobol-format-style'."
+  `cobol-format-style'."
   (interactive "*r")
   (cobol-format beg end))
 
 (defun cobol-format-buffer ()
   "Format all COBOL words in the current buffer according to
-`cobol-format-style'."
+  `cobol-format-style'."
   (interactive "*")
   (cobol-format (point-min) (point-max)))
 
@@ -2691,7 +2694,7 @@ Used by `cobol-strip-sequence-nos'."
 
 (defun cobol-strip-line-numbers ()
   "Delete all text in column 1 to 7.
-This is assumed to be line numbers."
+  This is assumed to be line numbers."
   (interactive)
   (let ((string (make-string 6 ? )))
     (save-excursion
@@ -2721,9 +2724,9 @@ This is assumed to be line numbers."
 
 (defun cobol-strip-sequence-nos (&optional do-space)
   "Delete all text in column `cobol-line-length' (default 72) and up.
-This is assumed to be sequence numbers.  Normally also deletes
-trailing whitespace after stripping such text.  Supplying prefix
-arg DO-SPACE prevents stripping the whitespace."
+  This is assumed to be sequence numbers.  Normally also deletes
+  trailing whitespace after stripping such text.  Supplying prefix
+  arg DO-SPACE prevents stripping the whitespace."
   (interactive "*p")
   (save-excursion
     (goto-char (point-min))
@@ -2751,7 +2754,7 @@ arg DO-SPACE prevents stripping the whitespace."
 
 (defun cobol--current-indentation ()
   "Return the indentation of the current line or -1 if the line is within the
-sequence area."
+  sequence area."
   (if (< (- (line-end-position) (line-beginning-position)) (cobol--code-start))
      -1
     (save-excursion
@@ -2767,7 +2770,7 @@ sequence area."
 
 (defun cobol--search-back (fn)
   "Go back a line at a time, calling FN each time.
-If the car of the return value is non-nil, return the cdr."
+  If the car of the return value is non-nil, return the cdr."
   (save-excursion
     (cl-do ((ret nil (funcall fn)))
         ((car ret) (cdr ret))
@@ -2775,7 +2778,7 @@ If the car of the return value is non-nil, return the cdr."
 
 (cl-defun cobol--search-back-for-indent (str &key with-whitespace)
   "Return the indent of the previous line starting with the regexp STR (optionally
-after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
+                                                                        after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
   (let ((line-re (concat (when with-whitespace cobol--optional-whitespace-re)
                          str)))
     (cobol--search-back
@@ -2790,7 +2793,7 @@ after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
 
 (defun cobol--indent-of-last-div-or-section ()
   "Return the indent of the preceding division or section."
-  (cobol--search-back-for-indent "\\(?:\\sw\\|\\s_\\)+\\s-+\\(DIVISION\\|SECTION\\)\\." :with-whitespace t))
+  (cobol--search-back-for-indent (concat cobol-symbol-re "+\\s-+\\(DIVISION\\|SECTION\\)\\." :with-whitespace t)))
 
 (defun cobol--indent-of-end-marker-match (group)
   "Return the indent of the start of GROUP."
@@ -2898,12 +2901,12 @@ after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
 
 (defun cobol--scope-terminator-statement (scope-terminator)
   "Return the statement contained in SCOPE-TERMINATOR."
-  (cobol--match-with-leading-whitespace "END-\\(\\sw\\|\\s_\\)+\\_>" scope-terminator)
+  (cobol--match-with-leading-whitespace (concat "END-" cobol-symbol-re "+" scope-terminator))
   (match-string 1 scope-terminator))
 
 (defun cobol--first-word (str)
   "Return the first word in STR."
-  (cobol--match-with-leading-whitespace "\\(\\sw\\|\\s_\\)+\\_>" str)
+  (cobol--match-with-leading-whitespace "\\(\\<_.+?\\_>\\)" str)
   (match-string 1 str))
 
 (defun cobol--go-to-open-statement (statements)
@@ -3163,6 +3166,19 @@ after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
     ("Insert" :filter cobol-skeleton--menu)
     ;; FIXME: This menu should likely grow a few more entries.
     ))
+
+;; Old syntax table
+;; (defvar cobol-mode-syntax-table
+;;   (let ((st (make-syntax-table)))
+;;     (modify-syntax-entry ?-  "w"   st)
+;;     (modify-syntax-entry ?_  "w"   st)
+;;     (modify-syntax-entry ?*  ". 1" st)
+;;     (modify-syntax-entry ?>  "w 2" st)
+;;     (modify-syntax-entry ?\\ "."   st)
+;;     (modify-syntax-entry ?'  "\""  st)
+;;     (modify-syntax-entry ?\" "\""  st)
+;;     (modify-syntax-entry ?\n ">"   st)
+;;     st))
 
 (defvar cobol-mode-syntax-table
   (let ((table (make-syntax-table)))
