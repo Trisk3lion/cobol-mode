@@ -151,7 +151,7 @@ The next key typed is executed unless it is SPC."
   (cl-set-difference l1 l2 :test #'string-equal))
 
 (defconst cobol-symbol-re
-  "\\(?:\\sw\\|s_\\)")
+  "\\(?:\\sw\\|\\s_\\)")
 
 (defconst cobol-directives
   '("CALL-CONVENTION"
@@ -2341,8 +2341,9 @@ Note that this matches DECLARATIVES.")
 
 
 (defun cobol--syntax-propertize-function (beg end)
-  "Syntax propertize awkward COBOL features (fixed-form comments, indicators
-                                                        and ignored areas) between points BEG and END."
+  "Syntax propertize awkward COBOL features.
+ Fixed-form comments, indicators and ignored areas between
+ points BEG and END."
   ;; TO-DO: Propertize continuation lines.
   (funcall
    (pcase cobol-source-format
@@ -2469,13 +2470,13 @@ Note that this matches DECLARATIVES.")
 
 (defvar cobol-skeleton-alist nil
   "Alist of code templates.
-  You can extend this alist to your heart's content.  For each additional
-  template NAME in the list, declare a keyboard macro or function (or
-                                                                   interactive command) called `cobol-skeleton-NAME'.
-  If `cobol-skeleton-NAME' is a function it takes no arguments and should
-  insert the template at point; if this is a command it may accept any
-  sensible interactive call arguments; keyboard macros can't take
-  arguments at all.")
+  You can extend this alist to your heart's content. For each
+  additional template NAME in the list, declare a keyboard macro
+  or function (or interactive command) called
+  `cobol-skeleton-NAME'. If `cobol-skeleton-NAME' is a function
+  it takes no arguments and should insert the template at point;
+  if this is a command it may accept any sensible interactive
+  call arguments; keyboard macros can't take arguments at all.")
 
 
 (defmacro cobol--def-skeleton (name doc interactor &rest elements)
@@ -2783,8 +2784,9 @@ Note that this matches DECLARATIVES.")
       (forward-line -1))))
 
 (cl-defun cobol--search-back-for-indent (str &key with-whitespace)
-  "Return the indent of the previous line starting with the regexp STR (optionally
-                                                                        after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
+  "Return the indent of the previous line starting with the regexp STR.
+ Optionally after whitespace if WITH-WHITESPACE.
+If that cannot be found, return 0."
   (let ((line-re (concat (when with-whitespace cobol--optional-whitespace-re)
                          str)))
     (cobol--search-back
