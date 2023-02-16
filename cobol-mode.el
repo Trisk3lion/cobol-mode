@@ -2746,18 +2746,43 @@ Note that this matches DECLARATIVES.")
 ;; Derived (a long time ago) from the wonderful Emacs Mode Tutorial at
 ;; <http://www.emacswiki.org/emacs/ModeTutorial>.
 
-(defun cobol--code-start ()
+(define-inline cobol--code-start ()
   "Return the first column code can go in."
   (if (eq cobol-source-format 'free)
       0
     7))
 
 ;;; Misc
-(defvar cobol-tab-width 4 "Width of a tab for `cobol-mode'.")
+(defcustom cobol-tab-width 4
+  "Width of a tab for `cobol-mode'."
+  :group 'cobol-mode
+  :type 'number)
 
-(cl-defun cobol--indent (indent &optional (times 1))
+(defcustom cobol-when-indent 0
+  "Indent of 'when' clauses in EVALUATE statemnet."
+  :group 'cobol-mode
+  :type 'number)
+
+(defcustom cobol-if/eva/perform-indent 2.0
+  "Indent after a IF/EVALUATE/WHEN/non-procedural PERFORM."
+  :group 'cobol-mode
+  :type 'integer)
+
+(defcustom cobol-if-indent 2
+  "Indent of sentance after and 'IF' statement."
+  :group 'cobol-mode
+  :type 'integer)
+
+(defcustom cobol-procedure-params 25
+  "Indent of Procedure Divisions 'USING' params."
+  :group 'cobol
+  :type 'integer)
+
+(cl-defun cobol--indent (indent &optional (times 1.0))
   "Increment INDENT."
-  (+ indent (round (* times cobol-tab-width))))
+  (+ indent (cl-etypecase times
+              (integer times)
+              (float (round (* times cobol-tab-width))))))
 
 (defun cobol--current-indentation ()
   "Return the indentation of the current line or -1 if the line is within the
@@ -2962,7 +2987,7 @@ If that cannot be found, return 0."
           ((string-equal phrase "WHEN")
            (cobol--indent (cobol--indent-of-open-statement
                            (cobol--statements-with-phrase str))
-                          0))
+                          cobol-when-indent))
           (t
            (cobol--indent (cobol--indent-of-open-statement
                            (cobol--statements-with-phrase str)))))))
@@ -3052,7 +3077,7 @@ If that cannot be found, return 0."
                   ;; NOTE: Fulhack, men nu linjerar parametrarna upp till P. DIV
                   (cobol--search-back
                    (lambda () (when (looking-at-p cobol--procedure-division-re)
-                                (cons t 25)))))
+                                (cons t cobol-procedure-params)))))
                  ;; (cobol--indent (cobol--search-back-for-indent cobol--procedure-division-re)
                  ;;                2))
                  ((cobol--in-if-eval-when-or-perform-cond-p)
@@ -3060,7 +3085,7 @@ If that cannot be found, return 0."
                   (cobol--indent (cobol--search-back-for-indent
                                   cobol--phrases-with-double-indent-after
                                   :with-whitespace t)
-                                 2))
+                                 cobol-if/eva/perform-indent))
                  ;; Indent once after any other statement.
                  (t
                   (cobol--indent (cobol--indent-of-last-statement))))))))
@@ -3146,8 +3171,10 @@ If that cannot be found, return 0."
   ;; FIXME: Om vi är i sekvens arean indenterar vi först direkt till kolumn 7
   ;; Behöver göras på ett bättre sätt.
   (when (and (> (cobol--code-start) 0)
-             (< (current-column) 7))
-	  (indent-to-column 7))
+             (< (progn (skip-syntax-forward " " (line-end-position))
+                       (current-column))
+                6))
+    (indent-to-column 7))
   (let ((indent (cobol--find-indent-of-line)))
     (if (not (eq indent (cobol--current-indentation)))
         (progn
