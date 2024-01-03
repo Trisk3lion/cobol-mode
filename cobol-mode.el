@@ -262,6 +262,8 @@ The next key typed is executed unless it is SPC."
     "RESET TRACE"
     "XML GENERATE"
     "XML PARSE"
+    "JSON PARSE"
+    "JSON GENERATE"
     "ATTACH"
     "ALLOW" ; Unisys COBOL-74
     "AWAIT-OPEN" ; Unisys COBOL-74
@@ -349,7 +351,8 @@ The next key typed is executed unless it is SPC."
     "END-SYNC"
     "END-TRY"
     "END-WAIT"
-    "END-XML"))
+    "END-XML"
+    "END-JSON"))
 
 (defconst cobol-scope-terminators
   (append cobol-scope-terminators-2014
