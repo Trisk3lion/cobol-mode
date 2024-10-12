@@ -3094,6 +3094,156 @@ start of area A, if fixed-format)."
 
 (defvar ac-ignore-case)
 
+;;; Copybooks
+
+(defvar cobol-copybook-directory nil
+  "Additional directory to search for copybooks.")
+
+(defvar cobol-copybook-regex "copy[ ]+\['\"\]"
+  "Regular expression to identify lines with copybooks.")
+
+(defun cobol--copybook-at-point (&optional cpy-dir)
+  "Find path to the copybook at the current position.
+
+If the file exists either in the current directory or in
+`cobol-copybook-directory', its path is returned. If the file is
+not found and the optional CPY-DIR flag is set, a path to the
+copybook directory is created, otherwise to the local directory."
+  (require 'ffap)
+  (let* ((filename (ffap-string-at-point))
+         (alternate-filename (if cobol-copybook-directory (expand-file-name filename cobol-copybook-directory)))
+         copybook)
+
+    ;; existing file
+    (setq copybook (if (file-regular-p filename)
+                       filename
+                     (if (and alternate-filename (file-regular-p alternate-filename))
+                         alternate-filename)))
+
+    ;; new file
+    (unless copybook
+      (setq copybook (if (and cpy-dir alternate-filename)
+                         alternate-filename
+                       filename)))
+
+    (expand-file-name copybook)))
+
+(defun cobol--insert-copybook (overlay)
+  "Insert the content of the copybook into OVERLAY.
+
+The path to the file is read from property `copybook'."
+   (let ((copybook (overlay-get overlay 'copybook)))
+     (with-temp-buffer
+       (insert "\n")
+       (if (and copybook (file-regular-p copybook))
+           (insert-file-contents copybook)
+        (insert "      *> File not found!"))
+
+       (replace-regexp-in-region "\n" "" (1- (point-max)) (point-max))
+       (overlay-put overlay 'after-string (buffer-string)))))
+
+(defun cobol--display-copybook ()
+  "Import and display the content of the copybook file."
+  (let ((copybook (cobol--copybook-at-point))
+        ol)
+    (end-of-thing 'sentence)
+    (setq ol (make-overlay (line-end-position) (line-end-position)))
+    (overlay-put ol 'copybook copybook)
+    (cobol--insert-copybook ol)))
+
+(defun cobol-copy-copybook ()
+  "Add the content of the copybook of the current sentence to the kill ring."
+  (interactive)
+
+  (save-excursion
+    (when-let (bounds (bounds-of-thing-at-point 'sentence))
+      (goto-char (car bounds)))
+    (if (search-forward-regexp cobol-copybook-regex (line-end-position) t)
+        (let ((copybook (cobol--copybook-at-point)))
+          (if (and copybook (file-regular-p copybook))
+              (with-temp-buffer
+                (insert-file-contents copybook)
+                (kill-new (buffer-string)))
+            (message "File not found.")))
+      (message "No copybook in this sentence."))))
+
+(defun cobol-edit-copybook (&optional cpy-dir)
+  "Edit the copybook imported in the current sentence.
+
+If the copybook doesn't exist, a new file is created either in
+the current directory, or if the flag CPY-DIR is set in
+`cobol-copybook-directory'.
+
+Uses the function defined in `ffap-file-finder' to open the file.
+It is recommended to set it to `find-file-other-window'."
+  (interactive "P")
+
+  (save-excursion
+    (when-let (bounds (bounds-of-thing-at-point 'sentence))
+      (goto-char (car bounds)))
+    (if (search-forward-regexp cobol-copybook-regex (line-end-position) t)
+        (when-let ((copybook (cobol--copybook-at-point cpy-dir)))
+          (funcall ffap-file-finder copybook))
+      (message "No copybook in this sentence."))))
+
+(defun cobol-hide-all-copybooks ()
+  "Hide all copybooks in the current buffer."
+  (interactive)
+
+  (dolist (ol (car (overlay-lists)))
+    (when (overlay-get ol 'copybook)
+      (delete-overlay ol))))
+
+(defun cobol-hide-copybook ()
+  "Hide the copybook for the current sentence."
+  (interactive)
+
+  (save-excursion
+    (unless (bounds-of-thing-at-point 'sentence) (forward-to-word 1))
+    (end-of-thing 'sentence)
+    (dolist (ol (overlays-in (line-end-position) (1+ (line-end-position))))
+      (when (overlay-get ol 'copybook)
+        (delete-overlay ol)))))
+
+(defun cobol-revert-all-copybooks ()
+  "Replace all copybooks in the current buffer with updated content."
+  (interactive)
+
+  (dolist (ol (car (overlay-lists)))
+    (when (overlay-get ol 'copybook)
+      (cobol--insert-copybook ol))))
+
+(defun cobol-revert-copybook ()
+  "Replace the copybook for the current sentence with updated content."
+  (interactive)
+
+  (save-excursion
+    (unless (bounds-of-thing-at-point 'sentence) (forward-to-word 1))
+    (end-of-thing 'sentence)
+    (dolist (ol (overlays-in (line-end-position) (1+ (line-end-position))))
+      (when (overlay-get ol 'copybook)
+        (cobol--insert-copybook ol)))))
+
+(defun cobol-show-all-copybooks ()
+  "Show all copybooks imported into the current buffer."
+  (interactive)
+
+  (save-excursion
+    (goto-char (point-min))
+    (while (search-forward-regexp cobol-copybook-regex nil (point-max))
+      (cobol--display-copybook))))
+
+(defun cobol-show-copybook ()
+  "Show the copybook imported with the current sentence."
+  (interactive)
+
+  (save-excursion
+    (when-let (bounds (bounds-of-thing-at-point 'sentence))
+      (goto-char (car bounds)))
+    (if (search-forward-regexp cobol-copybook-regex (line-end-position) t)
+        (cobol--display-copybook)
+      (message "No copybook in this sentence."))))
+
 ;;;###autoload
 (define-derived-mode cobol-mode prog-mode "COBOL"
   "COBOL mode is a major mode for handling COBOL files."
