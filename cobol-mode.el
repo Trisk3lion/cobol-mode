@@ -3198,12 +3198,15 @@ It is recommended to set it to `find-file-other-window'."
   "Hide the copybook for the current sentence."
   (interactive)
 
-  (save-excursion
-    (unless (bounds-of-thing-at-point 'sentence) (forward-to-word 1))
-    (end-of-thing 'sentence)
-    (dolist (ol (overlays-in (line-end-position) (1+ (line-end-position))))
-      (when (overlay-get ol 'copybook)
-        (delete-overlay ol)))))
+  (let (copybook-hidden-p)
+    (save-excursion
+      (unless (bounds-of-thing-at-point 'sentence) (forward-to-word 1))
+      (end-of-thing 'sentence)
+      (dolist (ol (overlays-in (line-end-position) (1+ (line-end-position))))
+        (when (overlay-get ol 'copybook)
+          (delete-overlay ol)
+          (setq copybook-hidden-p t))))
+    copybook-hidden-p))
 
 (defun cobol-revert-all-copybooks ()
   "Replace all copybooks in the current buffer with updated content."
@@ -3243,6 +3246,13 @@ It is recommended to set it to `find-file-other-window'."
     (if (search-forward-regexp cobol-copybook-regex (line-end-position) t)
         (cobol--display-copybook)
       (message "No copybook in this sentence."))))
+
+(defun cobol-toggle-copybook ()
+  "Show or hide the copybook imported with the current sentence."
+  (interactive)
+
+  (unless (cobol-hide-copybook)
+    (cobol-show-copybook)))
 
 ;;;###autoload
 (define-derived-mode cobol-mode prog-mode "COBOL"
